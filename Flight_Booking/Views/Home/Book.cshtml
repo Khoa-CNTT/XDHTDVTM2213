@@ -1,0 +1,487 @@
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@model FlightBookingApp.ViewModel.BookingFormViewModel
+
+@{
+    ViewData["Title"] = "Book";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var flight = ViewBag.Flight as FlightBookingApp.Models.Flight;
+    var returnFlight = ViewBag.ReturnFlight as FlightBookingApp.Models.Flight;
+    var passengerCount = ViewBag.PassengerCount;
+    var adultCount = ViewBag.AdultCount;
+    var childCount = ViewBag.ChildCount;
+    var isRoundTrip = ViewBag.IsRoundTrip;
+
+    var countries = new List<SelectListItem>
+    {
+        new SelectListItem { Value = "Vietnam", Text = "Việt Nam" },
+        new SelectListItem { Value = "USA", Text = "Hoa Kỳ" },
+        new SelectListItem { Value = "Japan", Text = "Nhật Bản" },
+        new SelectListItem { Value = "China", Text = "Trung Quốc" },
+        new SelectListItem { Value = "Thailand", Text = "Thái Lan" },
+    };
+
+    var luggageOptions = new List<SelectListItem>
+    {
+        new SelectListItem { Value = "0", Text = "Không thêm hành lý chiều đi (0 VNĐ)" },
+        new SelectListItem { Value = "216000", Text = "Mua 20 kg hành lý (216,000 VNĐ)" },
+        new SelectListItem { Value = "324000", Text = "Mua 30 kg hành lý (324,000 VNĐ)" },
+        new SelectListItem { Value = "432000", Text = "Mua 40 kg hành lý (432,000 VNĐ)" },
+        new SelectListItem { Value = "594000", Text = "Mua 50 kg hành lý (594,000 VNĐ)" },
+        new SelectListItem { Value = "702000", Text = "Mua 60 kg hành lý (702,000 VNĐ)" },
+        new SelectListItem { Value = "810000", Text = "Mua 70 kg hành lý (810,000 VNĐ)" },
+        new SelectListItem { Value = "486000", Text = "Mua 20 kg HLOK hành lý (486,000 VNĐ)" },
+        new SelectListItem { Value = "594000", Text = "Mua 30 kg HLOK hành lý (594,000 VNĐ)" },
+    };
+
+    decimal basePrice = flight != null ? flight.Price * passengerCount : 0;
+    if (isRoundTrip && returnFlight != null)
+    {
+        basePrice += returnFlight.Price * passengerCount;
+    }
+
+    string flightDurationFormatted = "N/A";
+    if (flight != null)
+    {
+        var flightDuration = flight.ArrivalTime - flight.DepartureTime;
+        flightDurationFormatted = $"{flightDuration.Hours}h {flightDuration.Minutes}m";
+    }
+
+    string returnFlightDurationFormatted = null;
+    if (isRoundTrip && returnFlight != null)
+    {
+        var returnFlightDuration = returnFlight.ArrivalTime - returnFlight.DepartureTime;
+        returnFlightDurationFormatted = $"{returnFlightDuration.Hours}h {returnFlightDuration.Minutes}m";
+    }
+}
+
+<div class="container my-5">
+    <div class="row g-4">
+        <!-- Left Section: Form -->
+        <div class="col-lg-8">
+            <form action="/Home/ConfirmBooking" method="post" id="bookingForm" class="needs-validation" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="FlightId" value="@(flight?.FlightId)" />
+                <input type="hidden" name="ReturnFlightId" value="@(returnFlight?.FlightId)" />
+                <input type="hidden" name="PassengerCount" value="@passengerCount" />
+                <input type="hidden" name="AdultCount" value="@adultCount" />
+                <input type="hidden" name="ChildCount" value="@childCount" />
+                <input type="hidden" name="IsRoundTrip" value="@isRoundTrip.ToString().ToLower()" />
+
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @TempData["Error"]
+                    </div>
+                }
+
+                <!-- Passenger List -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Danh sách khách hàng</h5>
+                    </div>
+                    <div class="card-body">
+                        @for (int i = 0; i < adultCount; i++)
+                        {
+                            <div class="passenger-section mb-4">
+                                <h6 class="fw-bold">Người lớn @(i + 1)</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Giới tính</label>
+                                        <select name="PassengerGenders[@i]" class="form-select" required>
+                                            <option value="Male">Quý ông</option>
+                                            <option value="Female">Quý bà</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Họ và tên</label>
+                                        <input type="text" name="PassengerNames[@i]" class="form-control" required />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Ngày sinh</label>
+                                        <input type="date" name="PassengerDob[@i]" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="form-label">Hành lý chiều đi</label>
+                                    <select name="LuggageAdult[@i]" class="form-select luggage-select">
+                                        @foreach (var option in luggageOptions)
+                                        {
+                                            <option value="@option.Value" data-price="@option.Value">@option.Text</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="form-check mt-3">
+                                    <input type="checkbox" class="form-check-input" id="addIdAdult_@i" name="AddIdAdult[@i]" value="true">
+                                    <label class="form-check-label" for="addIdAdult_@i">Thêm giấy tờ tùy thân</label>
+                                </div>
+                                <div id="idDetailsAdult_@i" class="mt-3" style="display: none;">
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label">Hộ chiếu/Căn cước</label>
+                                            <input type="text" name="IdTypeAdult[@i]" class="form-control" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Ngày hết hạn</label>
+                                            <input type="date" name="IdExpiryAdult[@i]" class="form-control" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Quốc gia cấp</label>
+                                            <select name="IdCountryAdult[@i]" class="form-select">
+                                                @foreach (var country in countries)
+                                                {
+                                                    <option value="@country.Value" @(country.Value == "Vietnam" ? "selected" : "")>@country.Text</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Quốc tịch</label>
+                                            <select name="NationalityAdult[@i]" class="form-select">
+                                                @foreach (var country in countries)
+                                                {
+                                                    <option value="@country.Value" @(country.Value == "Vietnam" ? "selected" : "")>@country.Text</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @for (int i = 0; i < childCount; i++)
+                        {
+                            <div class="passenger-section mb-4">
+                                <h6 class="fw-bold">Trẻ em @(i + 1)</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Giới tính</label>
+                                        <select name="PassengerGenders[@(adultCount + i)]" class="form-select" required>
+                                            <option value="Male">Quý ông</option>
+                                            <option value="Female">Quý bà</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Họ và tên</label>
+                                        <input type="text" name="PassengerNames[@(adultCount + i)]" class="form-control" required />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Ngày sinh</label>
+                                        <input type="date" name="PassengerDob[@(adultCount + i)]" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="form-label">Hành lý chiều đi</label>
+                                    <select name="LuggageChild[@i]" class="form-select luggage-select">
+                                        @foreach (var option in luggageOptions)
+                                        {
+                                            <option value="@option.Value" data-price="@option.Value">@option.Text</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="form-check mt-3">
+                                    <input type="checkbox" class="form-check-input" id="addIdChild_@i" name="AddIdChild[@i]" value="true">
+                                    <label class="form-check-label" for="addIdChild_@i">Thêm giấy tờ tùy thân</label>
+                                </div>
+                                <div id="idDetailsChild_@i" class="mt-3" style="display: none;">
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label">Hộ chiếu/Căn cước</label>
+                                            <input type="text" name="IdTypeChild[@i]" class="form-control" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Ngày hết hạn</label>
+                                            <input type="date" name="IdExpiryChild[@i]" class="form-control" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Quốc gia cấp</label>
+                                            <select name="IdCountryChild[@i]" class="form-select">
+                                                @foreach (var country in countries)
+                                                {
+                                                    <option value="@country.Value" @(country.Value == "Vietnam" ? "selected" : "")>@country.Text</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Quốc tịch</label>
+                                            <select name="NationalityChild[@i]" class="form-select">
+                                                @foreach (var country in countries)
+                                                {
+                                                    <option value="@country.Value" @(country.Value == "Vietnam" ? "selected" : "")>@country.Text</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Thông tin liên hệ</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Giới tính</label>
+                                <select name="ContactGender" class="form-select" required>
+                                    <option value="Male">Quý ông</option>
+                                    <option value="Female">Quý bà</option>
+                                </select>
+                            </div>
+                            <div class="col-md-9">
+                                <label class="form-label">Họ và tên</label>
+                                <input type="text" name="ContactName" class="form-control" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Số điện thoại</label>
+                                <input type="text" name="ContactPhone" class="form-control" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="ContactEmail" class="form-control" required />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoice Request -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Tờ muốn xuất hóa đơn</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="invoiceRequest" name="InvoiceRequest" value="true">
+                            <label class="form-check-label" for="invoiceRequest">Tờ muốn xuất hóa đơn</label>
+                        </div>
+                        <div id="invoiceDetails" style="display: none;">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Tên công ty</label>
+                                    <input type="text" name="CompanyName" class="form-control" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Địa chỉ</label>
+                                    <input type="text" name="CompanyAddress" class="form-control" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Thành phố</label>
+                                    <input type="text" name="CompanyCity" class="form-control" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Mã số thuế</label>
+                                    <input type="text" name="TaxCode" class="form-control" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Người nhận hóa đơn</label>
+                                    <input type="text" name="InvoiceRecipient" class="form-control" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Số điện thoại</label>
+                                    <input type="text" name="InvoicePhone" class="form-control" />
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" name="InvoiceEmail" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Section: Booking Info -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Thông tin đặt chỗ</h5>
+                    <a href="Index" class="btn btn-link">Đổi chuyến</a>
+                </div>
+                <div class="card-body">
+                    <h6 class="fw-bold">Chuyến đi</h6>
+                    <p class="text-muted mb-2">@(flight != null ? flight.DepartureTime.ToString("dd/MM/yyyy") : "N/A")</p>
+                    <div class="mb-3">
+                        <span class="fw-medium">@(flight?.Airline ?? "N/A")</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>@(flight != null ? flight.DepartureTime.ToString("HH:mm") : "N/A")</span>
+                        <span>@flightDurationFormatted</span>
+                        <span>@(flight != null ? flight.ArrivalTime.ToString("HH:mm") : "N/A")</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>@(flight?.DepartureAirport?.City ?? "N/A")</span>
+                        <span>@(flight?.DestinationAirport?.City ?? "N/A")</span>
+                    </div>
+
+                    @if (isRoundTrip && returnFlight != null)
+                    {
+                        <hr class="my-4" />
+                        <h6 class="fw-bold">Chuyến về</h6>
+                        <p class="text-muted mb-2">@returnFlight.DepartureTime.ToString("dd/MM/yyyy")</p>
+                        <div class="mb-3">
+                            <span class="fw-medium">@returnFlight.Airline</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>@returnFlight.DepartureTime.ToString("HH:mm")</span>
+                            <span>@returnFlightDurationFormatted</span>
+                            <span>@returnFlight.ArrivalTime.ToString("HH:mm")</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>@returnFlight.DepartureAirport.City</span>
+                            <span>@returnFlight.DestinationAirport.City</span>
+                        </div>
+                    }
+
+                    <hr class="my-4" />
+                    <h6 class="fw-bold">Thông tin thanh toán</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Người lớn (@(flight != null ? flight.Price.ToString("N0") : "0") x @passengerCount)</span>
+                        <span>@(flight != null ? (flight.Price * passengerCount).ToString("N0") : "0") VNĐ</span>
+                    </div>
+                    @if (isRoundTrip && returnFlight != null)
+                    {
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Người lớn (chuyến về: @returnFlight.Price.ToString("N0") x @passengerCount)</span>
+                            <span>@(returnFlight.Price * passengerCount).ToString("N0") VNĐ</span>
+                        </div>
+                    }
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Hành lý bổ sung</span>
+                        <span id="luggageTotal">0 VNĐ</span>
+                    </div>
+                    <hr class="my-3" />
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>Tổng cộng</span>
+                        <span id="grandTotal">@basePrice.ToString("N0") VNĐ</span>
+                    </div>
+                    <button type="submit" form="bookingForm" class="btn btn-primary w-100 mt-4">Tiếp Tục</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('invoiceRequest').addEventListener('change', function () {
+        document.getElementById('invoiceDetails').style.display = this.checked ? 'block' : 'none';
+    });
+
+    @for (int i = 0; i < adultCount; i++)
+    {
+        <text>
+                document.getElementById('addIdAdult_@i').addEventListener('change', function () {
+                    document.getElementById('idDetailsAdult_@i').style.display = this.checked ? 'block' : 'none';
+                });
+        </text>
+    }
+
+    @for (int i = 0; i < childCount; i++)
+    {
+        <text>
+                document.getElementById('addIdChild_@i').addEventListener('change', function () {
+                    document.getElementById('idDetailsChild_@i').style.display = this.checked ? 'block' : 'none';
+                });
+        </text>
+    }
+
+    function updateTotal() {
+        let luggageTotal = 0;
+        document.querySelectorAll('.luggage-select').forEach(select => {
+            luggageTotal += parseInt(select.value) || 0;
+        });
+        const basePrice = @basePrice;
+        const grandTotal = basePrice + luggageTotal;
+        document.getElementById('luggageTotal').textContent = luggageTotal.toLocaleString('vi-VN') + ' VNĐ';
+        document.getElementById('grandTotal').textContent = grandTotal.toLocaleString('vi-VN') + ' VNĐ';
+    }
+
+    document.querySelectorAll('.luggage-select').forEach(select => {
+        select.addEventListener('change', updateTotal);
+    });
+
+    document.addEventListener('DOMContentLoaded', updateTotal);
+
+    document.getElementById('bookingForm').addEventListener('submit', function (event) {
+        console.log('Form is being submitted to:', this.action);
+        console.log('Method:', this.method);
+        var formData = new FormData(this);
+        for (var pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+    });
+</script>
+
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+        max-width: 1200px;
+    }
+
+    .card {
+        border: none;
+        border-radius: 8px;
+    }
+
+    .card-header {
+        border-radius: 8px 8px 0 0;
+        padding: 1rem 1.25rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 6px;
+        padding: 0.75rem;
+    }
+
+    .passenger-section {
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 1.5rem;
+    }
+
+        .passenger-section:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+    .btn-primary {
+        background-color: #6f42c1;
+        border-color: #6f42c1;
+        padding: 0.75rem;
+        border-radius: 6px;
+        transition: background-color 0.2s;
+    }
+
+        .btn-primary:hover {
+            background-color: #5a32a3;
+            border-color: #5a32a3;
+        }
+
+    .text-muted {
+        font-size: 0.9rem;
+    }
+
+    hr {
+        border-color: #dee2e6;
+    }
+
+    input[type="date"]::-webkit-datetime-edit-text,
+    input[type="date"]::-webkit-datetime-edit-month-field,
+    input[type="date"]::-webkit-datetime-edit-day-field,
+    input[type="date"]::-webkit-datetime-edit-year-field {
+        color: #6c757d;
+    }
+</style>

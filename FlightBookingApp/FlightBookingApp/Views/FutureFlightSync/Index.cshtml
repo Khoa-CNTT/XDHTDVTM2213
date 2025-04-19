@@ -1,0 +1,79 @@
+﻿@model List<FlightBookingApp.Models.Flight>
+
+@{
+    ViewData["Title"] = "Đồng bộ dữ liệu chuyến bay tương lai (Aviation Edge)";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="text-center mb-4">
+        @if (ViewBag.Message != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                @ViewBag.Message
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["InfoMessage"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                @TempData["InfoMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["SuggestionMessage"] != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                @TempData["SuggestionMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <p>
+            Hệ thống sẽ tự động đồng bộ dữ liệu chuyến bay từ Aviation Edge API lúc 11h tối mỗi ngày (FutureFlightSyncService).
+            Bạn cũng có thể chạy đồng bộ thủ công bằng cách nhấn nút bên dưới.
+        </p>
+
+        <div id="syncControls">
+            <form method="post" action="@Url.Action("SyncNow", "FutureFlightSync")" style="display: inline;" onsubmit="console.log('Form submitted to /FutureFlightSync/SyncNow');">
+                <button type="submit" class="btn btn-primary" id="syncButton">Đồng bộ ngay (Aviation Edge)</button>
+            </form>
+            <form method="post" action="@Url.Action("StopSync", "FutureFlightSync")" style="display: inline;">
+                <button type="submit" class="btn btn-danger" id="stopButton" disabled>Dừng</button>
+            </form>
+        </div>
+
+        <p>
+            <a href="https://localhost:7065/hangfire" target="_blank">Xem trạng thái công việc Hangfire</a>
+        </p>
+
+       
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Khi nhấn nút "Đồng bộ ngay (Aviation Edge)"
+            $("#syncButton").on("click", function () {
+                console.log("Sync button clicked");
+                $(this).addClass("disabled").text("Đang đồng bộ...");
+                $("#stopButton").removeClass("disabled");
+            });
+
+            // Khi nhấn nút "Dừng"
+            $("#stopButton").on("click", function () {
+                console.log("Stop button clicked");
+                $(this).addClass("disabled");
+                $("#syncButton").removeClass("disabled").text("Đồng bộ ngay (Aviation Edge)");
+            });
+        });
+    </script>
+}

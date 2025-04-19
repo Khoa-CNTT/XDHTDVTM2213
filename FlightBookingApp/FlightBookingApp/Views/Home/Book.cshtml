@@ -1,0 +1,576 @@
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@model FlightBookingApp.ViewModel.BookingFormViewModel
+
+@{
+    ViewData["Title"] = "Book";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var flight = ViewBag.Flight as FlightBookingApp.Models.Flight;
+    var returnFlight = ViewBag.ReturnFlight as FlightBookingApp.Models.Flight;
+    var passengerCount = ViewBag.PassengerCount;
+    var adultCount = ViewBag.AdultCount;
+    var childCount = ViewBag.ChildCount;
+    var isRoundTrip = ViewBag.IsRoundTrip;
+
+    var countries = new List<SelectListItem>
+    {
+        new SelectListItem { Value = "Vietnam", Text = "Việt Nam" },
+        new SelectListItem { Value = "USA", Text = "Hoa Kỳ" },
+        new SelectListItem { Value = "Japan", Text = "Nhật Bản" },
+        new SelectListItem { Value = "China", Text = "Trung Quốc" },
+        new SelectListItem { Value = "Thailand", Text = "Thái Lan" },
+    };
+
+    var luggageOptions = new List<SelectListItem>
+    {
+        new SelectListItem { Value = "0", Text = "Không thêm hành lý chiều đi (0 VNĐ)" },
+        new SelectListItem { Value = "216000", Text = "Mua 20 kg hành lý (216,000 VNĐ)" },
+        new SelectListItem { Value = "324000", Text = "Mua 30 kg hành lý (324,000 VNĐ)" },
+        new SelectListItem { Value = "432000", Text = "Mua 40 kg hành lý (432,000 VNĐ)" },
+        new SelectListItem { Value = "594000", Text = "Mua 50 kg hành lý (594,000 VNĐ)" },
+        new SelectListItem { Value = "702000", Text = "Mua 60 kg hành lý (702,000 VNĐ)" },
+        new SelectListItem { Value = "810000", Text = "Mua 70 kg hành lý (810,000 VNĐ)" },
+        new SelectListItem { Value = "486000", Text = "Mua 20 kg HLOK hành lý (486,000 VNĐ)" },
+        new SelectListItem { Value = "594000", Text = "Mua 30 kg HLOK hành lý (594,000 VNĐ)" },
+    };
+
+    decimal basePrice = flight != null ? flight.Price * passengerCount : 0;
+    if (isRoundTrip && returnFlight != null)
+    {
+        basePrice += returnFlight.Price * passengerCount;
+    }
+
+    string flightDurationFormatted = "N/A";
+    if (flight != null)
+    {
+        var flightDuration = flight.ArrivalTime - flight.DepartureTime;
+        flightDurationFormatted = $"{flightDuration.Hours}h {flightDuration.Minutes}m";
+    }
+
+    string returnFlightDurationFormatted = null;
+    if (isRoundTrip && returnFlight != null)
+    {
+        var returnFlightDuration = returnFlight.ArrivalTime - returnFlight.DepartureTime;
+        returnFlightDurationFormatted = $"{returnFlightDuration.Hours}h {returnFlightDuration.Minutes}m";
+    }
+}
+
+<style>
+    :root {
+        --primary-color: #4f46e5;
+        --primary-hover: #4338ca;
+        --primary-light: #eef2ff;
+        --secondary-color: #10b981;
+        --secondary-light: #ecfdf5;
+        --accent-color: #f59e0b;
+        --danger-color: #ef4444;
+        --dark-color: #1f2937;
+        --gray-light: #f9fafb;
+        --gray-medium: #e5e7eb;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        --border-radius: 12px;
+    }
+
+    body {
+        font-family: var(--font-family);
+        background-color: #f5f7fb;
+        color: var(--dark-color);
+    }
+
+    .booking-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .card {
+        border: none;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-md);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        margin-bottom: 2rem;
+        background-color: white;
+    }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--gray-medium);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .card-header h5 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .card-header .header-icon {
+            margin-right: 0.75rem;
+            background: var(--primary-light);
+            color: var(--primary-color);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--dark-color);
+        display: block;
+    }
+
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--gray-medium);
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+    .btn {
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.5);
+        }
+
+    .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+    .passenger-section {
+        background-color: var(--gray-light);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+        border-left: 4px solid var(--primary-color);
+    }
+
+        .passenger-section h6 {
+            display: inline-flex;
+            align-items: center;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            margin-bottom: 1.25rem;
+            font-weight: 600;
+            position: relative;
+            left: -2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+    .child-passenger {
+        border-left-color: var(--secondary-color);
+    }
+
+        .child-passenger h6 {
+            background: var(--secondary-color);
+        }
+
+    .flight-info-card {
+        position: sticky;
+        top: 2rem;
+    }
+
+    .flight-section {
+        padding: 1.5rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .outbound-flight {
+        background-color: var(--primary-light);
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .return-flight {
+        background-color: var(--secondary-light);
+        border-left: 4px solid var(--secondary-color);
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .flight-time {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 1rem 0;
+    }
+
+    .time-display {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--dark-color);
+    }
+
+    .duration {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+    }
+
+        .duration::before, .duration::after {
+            content: '';
+            position: absolute;
+            height: 1px;
+            background-color: var(--gray-medium);
+            width: 40%;
+            top: 50%;
+        }
+
+        .duration::before {
+            left: -45%;
+        }
+
+        .duration::after {
+            right: -45%;
+        }
+
+    .flight-route {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+    }
+
+    .airport-code {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .airport-name {
+        font-size: 0.9rem;
+        color: #6b7280;
+    }
+
+    .route-line {
+        flex: 1;
+        height: 2px;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        margin: 0 1rem;
+        position: relative;
+    }
+
+        .route-line::after {
+            content: '✈️';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2rem;
+        }
+
+    .payment-details {
+        padding: 1rem;
+        background-color: var(--gray-light);
+        border-radius: var(--border-radius);
+    }
+
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px dashed var(--gray-medium);
+    }
+
+        .price-row:last-child {
+            border-bottom: none;
+        }
+
+    .price-label {
+        display: flex;
+        align-items: center;
+        font-weight: 500;
+    }
+
+        .price-label i {
+            margin-right: 0.5rem;
+            color: var(--primary-color);
+        }
+
+    .price-value {
+        font-weight: 600;
+        color: var(--accent-color);
+    }
+
+    .total-price {
+        background-color: var(--primary-light);
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        margin-top: 1rem;
+    }
+
+        .total-price .price-label {
+            font-size: 1.1rem;
+        }
+
+        .total-price .price-value {
+            font-size: 1.25rem;
+            color: var(--danger-color);
+        }
+
+    .form-check {
+        margin: 1rem 0;
+    }
+
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-check-label {
+        padding-left: 0.5rem;
+    }
+
+    .change-flight-btn {
+        display: inline-flex;
+        align-items: center;
+        color: var(--primary-color);
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        border: 1px solid var(--primary-color);
+    }
+
+        .change-flight-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .change-flight-btn i {
+            margin-right: 0.5rem;
+        }
+
+    .alert {
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .alert-danger {
+        background-color: #fee2e2;
+        border-left: 4px solid var(--danger-color);
+        color: #b91c1c;
+    }
+
+    .booking-progress {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+        .booking-progress::before {
+            content: '';
+            position: absolute;
+            top: 1.5rem;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--gray-medium);
+            z-index: -1;
+        }
+
+    .progress-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+    }
+
+    .step-indicator {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        background-color: white;
+        border: 2px solid var(--gray-medium);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .step-active .step-indicator {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3);
+    }
+
+    .step-text {
+        font-weight: 500;
+        color: var(--dark-color);
+    }
+
+    .step-active .step-text {
+        color: var(--primary-color);
+    }
+
+    .step-completed .step-indicator {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+
+        .step-completed .step-indicator::after {
+            content: '✓';
+            font-size: 1.2rem;
+        }
+
+    .animated-plane {
+        animation: fly 5s infinite linear;
+    }
+
+    @@keyframes fly {
+        0%
+
+    {
+        transform: translateX(-10px) translateY(0);
+    }
+
+    25% {
+        transform: translateX(0) translateY(-5px);
+    }
+
+    50% {
+        transform: translateX(10px) translateY(0);
+    }
+
+    75% {
+        transform: translateX(0) translateY(5px);
+    }
+
+    100% {
+        transform: translateX(-10px) translateY(0);
+    }
+
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* Handle modal animations */
+    #idDetailsAdult_0, #idDetailsChild_0, #invoiceDetails {
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+        #idDetailsAdult_0.show, #idDetailsChild_0.show, #invoiceDetails.show {
+            opacity: 1;
+            max-height: 500px;
+        }
+
+    /* Responsive tweaks */
+    @@media (max-width: 992px) {
+        .flight-route
+
+    {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .route-line {
+        width: 2px;
+        height: 40px;
+        margin: 1rem 0;
+        background: linear-gradient(180deg, var(--primary-color), var(--accent-color));
+    }
+
+        .route-line::after {
+            transform: rotate(90deg);
+            left: -10px;
+            top: 50%;
+        }
+
+    }
+</style>

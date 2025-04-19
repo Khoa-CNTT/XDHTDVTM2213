@@ -1,0 +1,208 @@
+﻿@model List<FlightBookingApp.Models.Flight>
+
+@{
+    ViewData["Title"] = "Đồng bộ dữ liệu chuyến bay Quốc tế";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="text-center mb-4">
+        @if (ViewBag.Message != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                @ViewBag.Message
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["InfoMessage"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                @TempData["InfoMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["SuggestionMessage"] != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                @TempData["SuggestionMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <p>
+            Hệ thống sẽ tự động đồng bộ dữ liệu chuyến bay quốc tế từ các sân bay Việt Nam lúc 11h tối mỗi ngày (InternationalFlightDataService).
+            Bạn cũng có thể chạy đồng bộ thủ công bằng cách nhấn nút bên dưới.
+        </p>
+
+        <div id="syncControls">
+            <form method="post" action="@Url.Action("SyncInternationalFlights", "InternationalFlightSync")" style="display: inline;" onsubmit="console.log('Form submitted to /InternationalFlightSync/SyncInternationalFlights');">
+                <button type="submit" class="btn btn-primary" id="syncButton">Đồng bộ ngay (Quốc tế)</button>
+            </form>
+        </div>
+
+        <p>
+            <a href="https://localhost:7065/hangfire" target="_blank">Xem trạng thái công việc Hangfire</a>
+        </p>
+
+        <!-- Bộ lọc nâng cao -->
+        <div class="mb-4">
+            <form method="get" action="@Url.Action("Index", "InternationalFlightSync")" class="form-inline">
+                <div class="form-group mb-2">
+                    <label for="filterDate" class="mr-2">Ngày khởi hành:</label>
+                    <input type="date" name="filterDate" id="filterDate" class="form-control mr-2" value="@ViewBag.FilterDate" />
+                </div>
+                <div class="form-group mb-2">
+                    <label for="departureAirport" class="mr-2">Sân bay đi:</label>
+                    <input type="text" name="departureAirport" id="departureAirport" class="form-control mr-2" placeholder="VD: HAN, Nội Bài" value="@ViewBag.DepartureAirport" />
+                </div>
+                <div class="form-group mb-2">
+                    <label for="destinationAirport" class="mr-2">Sân bay đến:</label>
+                    <input type="text" name="destinationAirport" id="destinationAirport" class="form-control mr-2" placeholder="VD: JFK, New York" value="@ViewBag.DestinationAirport" />
+                </div>
+                <div class="form-group mb-2">
+                    <label for="airline" class="mr-2">Hãng hàng không:</label>
+                    <input type="text" name="airline" id="airline" class="form-control mr-2" placeholder="VD: Vietnam Airlines" value="@ViewBag.Airline" />
+                </div>
+                <button type="submit" class="btn btn-primary mb-2">Lọc</button>
+            </form>
+        </div>
+
+        <!-- Hiển thị danh sách chuyến bay -->
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Mã chuyến bay</th>
+                        <th>Hãng hàng không</th>
+                        <th>Sân bay đi</th>
+                        <th>Sân bay đến</th>
+                        <th>Thời gian đi</th>
+                        <th>Thời gian đến</th>
+                        <th>Số điểm dừng</th>
+                        <th>Giá</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var flight in Model)
+                        {
+                            <tr>
+                                <td>@flight.FlightNumber</td>
+                                <td>
+                                    @if (flight.AirlineId.HasValue)
+                                    {
+                                        <img src="@($"/images/airlines/{flight.AirlineId}.png")" alt="@flight.Airline" style="width: 30px; height: 30px; vertical-align: middle;" onerror="this.onerror=null; this.src='/images/airlines/default.png';" />
+                                    }
+                                    @flight.Airline
+                                </td>
+                                <td>@flight.DepartureAirport?.IataCode (@flight.DepartureAirport?.City)</td>
+                                <td>@flight.DestinationAirport?.IataCode (@flight.DestinationAirport?.City)</td>
+                                <td>@flight.DepartureTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@flight.ArrivalTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@flight.Stops</td>
+                                <td>@flight.Price.ToString("N0") VND</td>
+                                <td>@flight.Status</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center">Không có chuyến bay nào để hiển thị.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Phân trang -->
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                <!-- Nút "Trước" -->
+                <li class="page-item @(ViewBag.PageNumber == 1 ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", "InternationalFlightSync", new { page = ViewBag.PageNumber - 1, pageSize = 50, filterDate = ViewBag.FilterDate, departureAirport = ViewBag.DepartureAirport, destinationAirport = ViewBag.DestinationAirport, airline = ViewBag.Airline })">Trước</a>
+                </li>
+
+                @{
+                    int currentPage = ViewBag.PageNumber;
+                    int totalPages = ViewBag.TotalPages;
+                    int maxPagesToShow = 5;
+                    int startPage = Math.Max(1, currentPage - 2);
+                    int endPage = Math.Min(totalPages, startPage + maxPagesToShow - 1);
+
+                    if (endPage - startPage + 1 < maxPagesToShow)
+                    {
+                        startPage = Math.Max(1, endPage - maxPagesToShow + 1);
+                    }
+
+                    if (startPage > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("Index", "InternationalFlightSync", new { page = 1, pageSize = 50, filterDate = ViewBag.FilterDate, departureAirport = ViewBag.DepartureAirport, destinationAirport = ViewBag.DestinationAirport, airline = ViewBag.Airline })">1</a>
+                        </li>
+                        if (startPage > 2)
+                        {
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        }
+                    }
+
+                    for (int i = startPage; i <= endPage; i++)
+                    {
+                        <li class="page-item @(i == currentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("Index", "InternationalFlightSync", new { page = i, pageSize = 50, filterDate = ViewBag.FilterDate, departureAirport = ViewBag.DepartureAirport, destinationAirport = ViewBag.DestinationAirport, airline = ViewBag.Airline })">@i</a>
+                        </li>
+                    }
+
+                    if (endPage < totalPages)
+                    {
+                        if (endPage < totalPages - 1)
+                        {
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        }
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("Index", "InternationalFlightSync", new { page = totalPages, pageSize = 50, filterDate = ViewBag.FilterDate, departureAirport = ViewBag.DepartureAirport, destinationAirport = ViewBag.DestinationAirport, airline = ViewBag.Airline })">@totalPages</a>
+                        </li>
+                    }
+                }
+
+                <!-- Nút "Sau" -->
+                <li class="page-item @(ViewBag.PageNumber == ViewBag.TotalPages ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", "InternationalFlightSync", new { page = ViewBag.PageNumber + 1, pageSize = 50, filterDate = ViewBag.FilterDate, departureAirport = ViewBag.DepartureAirport, destinationAirport = ViewBag.DestinationAirport, airline = ViewBag.Airline })">Sau</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Khi nhấn nút "Đồng bộ ngay (Quốc tế)"
+            $("#syncButton").on("click", function () {
+                console.log("Sync button clicked");
+                $(this).addClass("disabled").text("Đang đồng bộ...");
+            });
+        });
+    </script>
+}

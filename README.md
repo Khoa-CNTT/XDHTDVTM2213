@@ -34,10 +34,6 @@ Dự án **Hệ thống đặt vé thông minh từ dữ liệu hàng không** (
 - Nhập **điểm đi, điểm đến, ngày bay, số hành khách**.
 - Bộ lọc theo **hãng hàng không, giá vé, hạng vé, số điểm dừng**.
 
-### 🤖 Dự đoán và đề xuất vé thông minh
-- Ứng dụng **AI** để **dự báo biến động giá vé**.
-- Gợi ý **thời điểm đặt vé tốt nhất**.
-
 ### 🛒 Đặt vé và thanh toán trực tuyến
 - Hỗ trợ **thanh toán qua thẻ tín dụng, ví điện tử, QR Code**.
 
